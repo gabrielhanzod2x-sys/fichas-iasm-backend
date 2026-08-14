@@ -1,0 +1,3 @@
+MONGODB_URI=mongodb+srv://Gabrielluiz:iasm2026@iasm-cluster.wrhrt7x.mongodb.net/?appName=iasm-cluster
+PORT=3000
+NODE_ENV=production
