@@ -52,6 +52,26 @@ const fichaSchema = new mongoose.Schema({
 const Ficha = mongoose.model('Ficha', fichaSchema);
 
 // ============================================
+// SCHEMA: Histórico de Inclusões/Exclusões
+// ============================================
+const historicoSchema = new mongoose.Schema({
+  tipo: { type: String, enum: ['inclusao', 'exclusao'], required: true },
+  matricula: { type: String, required: true },
+  nomeTitular: { type: String, required: true },
+  nomeIncluido: { type: String, required: true },
+  categoria: { type: String, enum: ['Titular', 'Dependente'], required: true },
+  plano: { type: String, default: '' },
+  orgao: { type: String, default: '' },
+  responsavel: { type: String, default: 'Administrador' },
+  fichaId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ficha' },
+  dadosFicha: { type: mongoose.Schema.Types.Mixed },
+  restaurado: { type: Boolean, default: false },
+  dataHora: { type: Date, default: Date.now }
+});
+
+const Historico = mongoose.model('Historico', historicoSchema);
+
+// ============================================
 // CONEXÃO MONGODB
 // ============================================
 
