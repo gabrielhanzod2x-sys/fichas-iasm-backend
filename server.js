@@ -365,6 +365,80 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+
+// ============================================
+// ROTAS: Histórico de Inclusões/Exclusões
+// ============================================
+
+app.post('/api/historico', async (req, res) => {
+  try {
+    const registro = new Historico(req.body);
+    await registro.save();
+    res.json({ sucesso: true, registro });
+  } catch (err) {
+    res.status(500).json({ sucesso: false, erro: err.message });
+  }
+});
+
+app.get('/api/historico', async (req, res) => {
+  try {
+    const { ano, mes, tipo } = req.query;
+    const filtro = {};
+    if (tipo) filtro.tipo = tipo;
+    if (ano) {
+      const anoNum = parseInt(ano);
+      let inicio, fim;
+      if (mes) {
+        const mesNum = parseInt(mes) - 1;
+        inicio = new Date(anoNum, mesNum, 1);
+        fim = new Date(anoNum, mesNum + 1, 1);
+      } else {
+        inicio = new Date(anoNum, 0, 1);
+        fim = new Date(anoNum + 1, 0, 1);
+      }
+      filtro.dataHora = { $gte: inicio, $lt: fim };
+    }
+    const registros = await Historico.find(filtro).sort({ dataHora: -1 });
+    res.json({ sucesso: true, registros, total: registros.length });
+  } catch (err) {
+    res.status(500).json({ sucesso: false, erro: err.message });
+  }
+});
+
+app.post('/api/historico/:id/restaurar', async (req, res) => {
+  try {
+    const registro = await Historico.findById(req.params.id);
+    if (!registro) return res.status(404).json({ sucesso: false, erro: 'Registro não encontrado' });
+    if (registro.tipo !== 'exclusao') return res.status(400).json({ sucesso: false, erro: 'Apenas exclusões podem ser restauradas' });
+    if (registro.restaurado) return res.status(400).json({ sucesso: false, erro: 'Esta ficha já foi restaurada' });
+    const novaFicha = new Ficha(registro.dadosFicha);
+    await novaFicha.save();
+    registro.restaurado = true;
+    await registro.save();
+    res.json({ sucesso: true, ficha: novaFicha });
+  } catch (err) {
+    res.status(500).json({ sucesso: false, erro: err.message });
+  }
+});
+
+app.delete('/api/historico', async (req, res) => {
+  try {
+    const { ids, ano, mesInicial, mesFinal } = req.body;
+    if (ids && ids.length) {
+      await Historico.deleteMany({ _id: { $in: ids } });
+      return res.json({ sucesso: true, removidos: ids.length });
+    }
+    if (ano) {
+      const inicio = new Date(parseInt(ano), (mesInicial || 1) - 1, 1);
+      const fim = new Date(parseInt(ano), (mesFinal || 12), 1);
+      const resultado = await Historico.deleteMany({ dataHora: { $gte: inicio, $lt: fim } });
+      return res.json({ sucesso: true, removidos: resultado.deletedCount });
+    }
+    res.status(400).json({ sucesso: false, erro: 'Informe ids ou um período' });
+  } catch (err) {
+    res.status(500).json({ sucesso: false, erro: err.message });
+  }
+});
 // ============================================
 // INICIAR SERVIDOR
 // ============================================
